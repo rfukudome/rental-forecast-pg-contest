@@ -19,13 +19,13 @@ INPUT_FILE_NAME = 'rent'
 INPUT_DF = csv_to_picle(INPUT_DIR,INPUT_FILE_NAME)
 # train
 print('現在読み込まれているデータ件数は',len(INPUT_DF),'件です')
-x_train, y_train, x_vaild, y_vaild = data_cleansing(INPUT_DF)
+x_train, y_train, x_valid, y_valid = data_cleansing(INPUT_DF)
 # LightGBMモデル作成
 logger.info('LightGBMにてモデルを作成します')
 params = {'objective': 'regression'}
 cv_result = lgb.cv(
     params,
-    lgb.Dataset(train_x, label=train_y),
+    lgb.Dataset(x_train, label=y_train),
     return_cvbooster=True,
     )
 model = cv_result['cvbooster']
@@ -49,10 +49,10 @@ print(result_pdc)
 
 logger.info('検証データから予測を実施します')
 # モデルから予測を実行します
-predict = model.predict(valid_x)
+predict = model.predict(x_valid)
 
 #  スコアを出力します。(平均平方二乗誤差)
-mse = mean_squared_error(valid_y, np.mean(predict, axis=0))
+mse = mean_squared_error(y_valid, np.mean(predict, axis=0))
 rmse = np.sqrt(mse)
 print(f'rmse: {rmse}, mse: {mse}')
 

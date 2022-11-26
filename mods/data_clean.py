@@ -161,7 +161,7 @@ def  data_cleansing(df):
     valid_x = xs[:valid_size]
     valid_y = ys[:valid_size]
     train_x = xs[valid_size:]
-    train_ys =  ys[valid_size:]
+    train_y =  ys[valid_size:]
 
     print(train_xs.info())
 
