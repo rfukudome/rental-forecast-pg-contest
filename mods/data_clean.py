@@ -1,141 +1,173 @@
 import pandas as pd
-import re
+from logging import getLogger
 
-def walk(item):
-    # 徒歩
-    walk_pattern = '歩[0-9]+'
-    walk_list = re.findall(walk_pattern, item)
-    # Castのエラーチェックをしていないのでチェックを実装する必要がある
-    walk_list = [int(x.replace("歩", "")) for x in walk_list]
-    return walk_list
-
-def bus(item):
-    # バス
-    bus_pattern = 'バス[1-9]+'
-    bus_list = re.findall(bus_pattern, item)
-    # Castのエラーチェックをしていないのでチェックを実装する必要がある
-    bus_list = [int(x.replace("バス", "")) for x in bus_list]
-    return bus_list
-
-def car(item):
-    # 車
-    car_pattern = '車[1-9]+'
-    car_list = re.findall(car_pattern, item)
-    # Castのエラーチェックをしていないのでチェックを実装する必要がある
-    car_list = [int(x.replace("車", "")) for x in car_list]
-    return car_list
-
-def  data_cleansing(data):
-    print('##データクレンジング実行')
-    #初期化
-    new_data = pd.DataFrame(columns=['歩1','歩2','歩3','バス1','バス2','バス3','車1','車2','車3','敷金','礼金','間取り','S','L','D','K','ワンルーム','専有面積','築年数','階','北','南','西','東','マンション','アパート','一戸建て','テラス・タウンハウス','その他'])
+def  data_cleansing(df):
+    logger = getLogger(__name__) 
+    logger.info('データクレンジング開始')
     #不要なデータを削除
-    data = data.dropna() #NON値の行を削除
-    data = data.drop_duplicates() #重複行を削除
+    df = df.dropna() #NON値の行を削除
+    df = df.drop_duplicates() #重複行を削除
     #不要要素を削除
-    #data = data.drop('ID','名称','敷金','礼金','所在地','駅徒歩','間取り','専有面積','築年数','階','向き','建物種別','部屋の特徴・設備','間取り詳細','構造','階建','築年月','損保','駐車場','入居','取引態様','条件','総戸数','情報更新日','次回更新日','備考',axis=1)
-    data = data.drop(['ID','名称','所在地','部屋の特徴・設備','間取り詳細','構造','階建','築年月','損保','駐車場','入居','取引態様','条件','総戸数','情報更新日','次回更新日','備考'],axis=1)
+    df_rent = df.copy()
+    df_stations = df_rent['駅徒歩'].str.split('\n', expand=True)
+    for name, station_info in df_stations.iteritems():
+        i = str(name)
+        df_rent['沿線'+ i] = station_info.str.split('/', expand=True)[0].fillna('')
+        df_rent['駅'+ i]   = station_info.str.split('/| ', expand=True)[1].fillna('')
+        df_rent['徒歩'+ i] = station_info.str.extract('歩([0-9]+)分', expand=False).fillna(50).astype(float)
 
-    #駅徒歩 所在地 駅徒歩   間取り     専有面積   築年数   階  向き   建物種別
-    for index in range(len(data)):
-        #初期化
-        new_data.loc[index] = 0 
-        #徒歩
-        walk_list = walk(data['駅徒歩'][index])
-        if len(walk_list) == 1:
-            new_data.loc[index,"歩1"] = walk_list[0]
-        elif len(walk_list) == 2:
-            new_data.loc[index,"歩1"] = walk_list[0]
-            new_data.loc[index,"歩2"] = walk_list[1]            
-        elif len(walk_list) == 3:
-            new_data.loc[index,"歩1"] = walk_list[0]
-            new_data.loc[index,"歩2"] = walk_list[1]
-            new_data.loc[index,"歩3"] = walk_list[2]
-        
-        #バス
-        bus_list = bus(data['駅徒歩'][index])
-        if len(bus_list) == 1:
-            new_data.loc[index,"バス1"] = bus_list[0]
-        elif len(bus_list) == 2:
-            new_data.loc[index,"バス1"] = bus_list[0]
-            new_data.loc[index,"バス2"] = bus_list[1]            
-        elif len(bus_list) == 3:
-            new_data.loc[index,"バス1"] = bus_list[0]
-            new_data.loc[index,"バス2"] = bus_list[1]
-            new_data.loc[index,"バス3"] = bus_list[2]
-        #車        
-        car_list = car(data['駅徒歩'][index])
-        if len(car_list) == 1:
-            new_data.loc[index,"車1"] = car_list[0]
-        elif len(car_list) == 2:
-            new_data.loc[index,"車1"] = car_list[0]
-            new_data.loc[index,"車2"] = car_list[1]            
-        elif len(car_list) == 3:
-            new_data.loc[index,"車1"] = car_list[0]
-            new_data.loc[index,"車2"] = car_list[1]
-            new_data.loc[index,"車3"] = car_list[2]
+    # 単位がついてるだけの列は数字部分だけ抽出
+    for name in ['専有面積', '築年数', '総戸数', '階']:
+        df_rent[name] = df_rent[name].str.extract('([0-9]+)', expand=False).fillna(0).astype(float)
 
-        #間取り
-        if 'S' in data['間取り'][index]:      
-            new_data.loc[index,'S'] = 1
-        if 'L' in data['間取り'][index] :    
-            new_data.loc[index,'L'] = 1 
-        if 'D' in data['間取り'][index] :
-            new_data.loc[index,'D'] = 1
-        if 'K' in data['間取り'][index] :
-            new_data.loc[index,'K'] = 1    
-        if 'ワンルーム' in data['間取り'][index] :
-            new_data.loc[index,'ワンルーム'] = 1
-        #間取りの数
-        if  'ワンルーム' in  data['間取り'][index] :
-            new_data.loc[index,'間取り']= 1
-        else:
-            num_data = data.loc[index,'間取り']
-            num = re.sub("\D", "", num_data)
-            new_data.loc[index,'間取り'] = int(num)
-        #向き
-        if '北' in data['向き'][index] :          
-            new_data.loc[index,'北'] = 1
-        if '南' in data['向き'][index] :
-            new_data.loc[index,'南'] = 1 
-        if '西' in data['向き'][index] :
-            new_data.loc[index,'西'] = 1
-        if '東' in data['向き'][index] :
-            new_data.loc[index,'東'] = 1
-        #建物種別
-        if data['建物種別'][index] == 'アパート':          
-            new_data.loc[index,'アパート'] = 1
-        elif data['建物種別'][index] == 'マンション':
-            new_data.loc[index,'マンション'] = 1 
-        elif data['建物種別'][index] == '一戸建て':
-            new_data.loc[index,'一戸建て'] = 1
-        elif data['建物種別'][index] == 'テラス・タウンハウス':
-            new_data.loc[index,'テラス・タウンハウス'] = 1
-        elif data['建物種別'][index] == 'その他':
-            new_data.loc[index,'その他'] = 1
-            
-    #専有面積
-    data['専有面積'] = data['専有面積'].str.replace('m2','')
-    new_data['専有面積'] = data['専有面積']
-    #築年数
-    data['築年数'] = data['築年数'].str.replace('築','')
-    data['築年数'] = data['築年数'].str.replace('新','0')
-    data['築年数'] = data['築年数'].str.replace('年','')
-    data['築年数'] = data['築年数'].str.replace('以上','')
-    new_data['築年数'] = data['築年数']
-    #階
-    data['階'] = data['階'].str.replace('B','-')
-    data['階'] = data['階'].str.replace('M','')
-    data['階'] = data['階'].str.replace('階','')
-    data['階'] = data['階'].str.replace('-','0')
-    new_data['階'] = data['階']
-    #敷金・礼金
-    new_data['敷金'] = data['敷金']
-    new_data['礼金'] = data['礼金']
+    # 部屋数は数字、LDKはSを除いてラベル化
+    df_rent['間取り'].replace('ワンルーム', '1', inplace=True)
+    df_rent['台所']   = df_rent['間取り'].str.extract('([LDK]+)', expand=False)\
+        .map({'K':1, 'LK':2, 'DK':3, 'LDK':4,}).fillna(0)
+    df_rent['納戸'] = df_rent['間取り'].apply(lambda s: 1 if 'S' in s else 0).astype(int)
+    df_rent['部屋数'] = df_rent['間取り'].str.extract('([0-9]+)', expand=False).fillna(0).astype(int)
 
-    print('##データクレンジング完了')
 
-    return new_data
+    # 部屋条件から目立ったものをピックアップ
+    topics = ['エアコン', '室内洗濯置', 'バストイレ別', 'バルコニー', 'フローリング', 'シューズボックス',
+    'クロゼット', 'TVインターホン', '温水洗浄便座', '都市ガス', '洗面所独立', 'システムキッチン',
+    '敷地内ごみ置き場', '3駅以上利用可', '2駅利用可', '2沿線利用可', '即入居可', '角住戸', '礼金不要',
+    '光ファイバー', '駅徒歩10分以内', 'オートロック', '浴室乾燥機', '宅配ボックス',
+    '最上階', '陽当り良好', '閑静な住宅地', '敷金・礼金不要', 'プロパンガス', 'エレベーター',
+    '南向き', '3沿線以上利用可', '駅まで平坦', 'ロフト', 'ペット', 'ウォークインクロゼット',
+    '始発駅', 'エアコン全室','エアコン2台','LDK12畳以上','デザイナーズ','南面リビング','駐車場1台無',
+    '高層階','未入居', 'リノベーション', 'エアコン3台',]
+    for topic in topics:
+        df_rent[topic] = df_rent['部屋の特徴・設備'].apply(lambda s: 1 if topic in s else 0)
+
+    # 駐車場はあるかないかだけ判定（敷地xxxxx円と無料だけは区別）
+    df_rent['駐車場'] = df_rent['駐車場'].replace('[^敷地無料]+','', regex=True)\
+        .map({'':0, '敷地':1, '無料':2})
+
+    # 指向性を持たせられるものは数値指定で変換
+    df_rent['向き'] = df_rent['向き'].map({'-':0, '北':0, '北東':1, '東':2, '南東':3, '南':4, '南西':5, '西':6, '北西':7}).fillna(0)
+    df_rent['建物種別'] = df_rent['建物種別'].map({ 'その他':0, 'テラス・タウンハウス':1, 'アパート':2,'マンション':3, '一戸建て':4,}).fillna(0)
+    df_rent['構造'] = df_rent['構造'].map({ 'その他':0, '木造':0, '軽量鉄骨':0, '鉄骨':2, '気泡コン':2, 'ブロック':3, '鉄筋コン':3, '鉄骨鉄筋':3, 'プレコン':3, '鉄骨プレ':3}).fillna(0)
+
+    # 住所を分解
+    df_rent['都道府県名'] = df_rent['所在地'].str.extract('(...??[都道府県])', expand=False)
+    df_rent['市区町村名'] = df_rent['所在地'].str.extract('...??[都道府県]((?:東村山市|武蔵村山市|佐波郡玉村町)|.+?郡.+?[町村]|.+?市.+?区|.+?[市区町村])', expand=False)
+    df_rent['大字町丁目'] = df_rent['所在地'].str.extract('...??[都道府県](?:(?:東村山市|武蔵村山市|佐波郡玉村町)|.+?郡.+?[町村]|.+?市.+?区|.+?[市区町村])(.+)', expand=False)
+    # 末尾の丁目を抽出し半角数字に変換（geoデータとフォーマットと合わせるため）
+    df_rent['丁目']   = df_rent['大字町丁目'].str.extract('([０-９]{1,2})$') \
+        .apply(lambda s: s.str.translate(str.maketrans('０１２３４５６７８９', '0123456789')))
+    # 末尾の数字を消し込んで大字部分を抽出
+    df_rent['大字町'] = df_rent['大字町丁目'].replace('[０１２３４５６７８９]{1,2}$', '', regex=True)
+    # 表記揺れを統一
+    for name in ['市区町村名', '大字町']: df_rent[name] = df_rent[name].replace("ヶ", "ケ", regex=True)\
+        .fillna('') #naあるとquery落ちて調査時に面倒
+    
+    df_train = df_rent.copy()
+    # 教師データとなる行を切り出し
+    ys = df_train['家賃 + 管理費・共益費'].astype(int).copy()
+    # 学習につかう列を切り出し
+    xs = df_train[[
+        # '緯度',
+        # '経度',
+        # '建物名',
+        '沿線0',
+        '沿線1',
+        '沿線2',
+        '駅0',
+        '駅1',
+        '駅2',
+        '徒歩0',
+        '徒歩1',
+        '徒歩2',
+        '都道府県名',
+        '市区町村名',
+        '大字町',
+        '丁目',
+        '築年数',
+        '専有面積',
+        '向き',
+        '階',
+        '階建',
+        '建物種別',
+        '構造',
+        '総戸数',
+        '台所',
+        '駐車場',
+        '納戸',
+        '部屋数',
+        '敷金',
+        '礼金',
+        'エアコン',
+        # '室内洗濯置',
+        # 'バストイレ別',
+        'バルコニー',
+        # 'フローリング',
+        # 'シューズボックス',
+        # 'クロゼット',
+        # 'TVインターホン',
+        '温水洗浄便座',
+        '都市ガス',
+        # '洗面所独立',
+        'システムキッチン',
+        # '敷地内ごみ置き場',
+        '3駅以上利用可',
+        #'2駅利用可',
+        # '2沿線利用可',
+        # '即入居可',
+        '角住戸',
+        # '礼金不要',
+        # '光ファイバー',
+        # '駅徒歩10分以内',
+        # 'オートロック',
+        # '浴室乾燥機',
+        # '宅配ボックス',
+        # '最上階',
+        '陽当り良好',
+        # '閑静な住宅地',
+        '敷金・礼金不要',
+        # 'プロパンガス',
+        # 'エレベーター',
+        # '南向き',
+        # '3沿線以上利用可',
+        # '駅まで平坦',
+        # 'ロフト',
+        'ペット',
+        # 'ウォークインクロゼット',
+        # '始発駅',
+        # 'エアコン全室',
+        # 'エアコン2台',
+        # 'LDK12畳以上',
+        # 'デザイナーズ',
+        # '南面リビング',
+        # '駐車場1台無',
+        # '高層階',
+        # '未入居',
+        'リノベーション',
+        # 'エアコン3台',
+    ]].copy()
+
+    # すべての列をfloatに変換（変換エラーの行はfactorize）
+    for name, column in xs.iteritems():
+        try:
+            xs[name] = column.fillna(0).astype(float)
+        except ValueError:
+            print(name + ' factorize')
+            xs[name] = pd.factorize(column)[0]
+            xs[name].astype(float)
+
+
+    # 学習データと検証データに行を分離（先頭7000を検証データとして使用）
+    valid_size = 7000 if len(xs) > 70000 else int(len(xs)*0.1)
+    valid_x = xs[:valid_size]
+    valid_y = ys[:valid_size]
+    train_x = xs[valid_size:]
+    train_y =  ys[valid_size:]
+
+    print(train_xs.info())
+
+    logger.info('データクレンジング完了')
+
+    return train_x, train_y, valid_x, valid_y
 
 
 
