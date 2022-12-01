@@ -1,2 +1,5 @@
-*.pkl
-*.csv
+.model/
+.data/
+.input/
+.venv/
+.output/
