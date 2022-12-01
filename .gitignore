@@ -1,2 +1,8 @@
-*.pkl
-*.csv
+__pycache__
+.venv/
+model/
+data/
+input/
+venv/
+output/
+mods/__pycache__/

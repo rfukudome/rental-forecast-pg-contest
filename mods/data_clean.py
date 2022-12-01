@@ -1,16 +1,19 @@
 import pandas as pd
-from logging import getLogger
+from os import path
+import mods.geo as geo
+import mods.avg_rent as avg_rent
+import mods.land_price as land_price
+from datetime import datetime as dt
 
 def  data_cleansing(df):
-    logger = getLogger(__name__) 
-    logger.info('データクレンジング開始')
+    print(dt.now(),': データクレンジング開始')
     #不要なデータを削除
     df = df.dropna() #NON値の行を削除
     df = df.drop_duplicates() #重複行を削除
     #不要要素を削除
     df_rent = df.copy()
     df_stations = df_rent['駅徒歩'].str.split('\n', expand=True)
-    for name, station_info in df_stations.iteritems():
+    for name, station_info in df_stations.items():
         i = str(name)
         df_rent['沿線'+ i] = station_info.str.split('/', expand=True)[0].fillna('')
         df_rent['駅'+ i]   = station_info.str.split('/| ', expand=True)[1].fillna('')
@@ -61,14 +64,25 @@ def  data_cleansing(df):
     # 表記揺れを統一
     for name in ['市区町村名', '大字町']: df_rent[name] = df_rent[name].replace("ヶ", "ケ", regex=True)\
         .fillna('') #naあるとquery落ちて調査時に面倒
-    
-    df_train = df_rent.copy()
+
+    # 都道府県と部屋数から平均賃貸料を追加
+    # avg_rent.py実行時に追加必要
+    df_avg_rent = avg_rent.get_avg_rent(df_rent)
+
+    #  /*** geoデータから緯度経度を付与***/
+    df_rent_geo = geo.get_geo_location(df_avg_rent)
+
+    # 地価情報付与
+    df_land_price = land_price.get_land_price(df_rent_geo)
+
+    df_train = df_land_price.copy()
+    # df_train.to_csv('./data/train.csv')
     # 教師データとなる行を切り出し
     ys = df_train['家賃 + 管理費・共益費'].astype(int).copy()
     # 学習につかう列を切り出し
     xs = df_train[[
-        # '緯度',
-        # '経度',
+        '緯度',
+        '経度',
         # '建物名',
         '沿線0',
         '沿線1',
@@ -83,6 +97,7 @@ def  data_cleansing(df):
         '市区町村名',
         '大字町',
         '丁目',
+        '地価', #　land_price.py　実行時コメントアウト必要
         '築年数',
         '専有面積',
         '向き',
@@ -144,10 +159,11 @@ def  data_cleansing(df):
         # '未入居',
         'リノベーション',
         # 'エアコン3台',
+        # 平均賃貸金額　#avg_rent.py追加の場合、コメント解除
     ]].copy()
 
     # すべての列をfloatに変換（変換エラーの行はfactorize）
-    for name, column in xs.iteritems():
+    for name, column in xs.items():
         try:
             xs[name] = column.fillna(0).astype(float)
         except ValueError:
@@ -155,19 +171,9 @@ def  data_cleansing(df):
             xs[name] = pd.factorize(column)[0]
             xs[name].astype(float)
 
+    print(dt.now(),': データクレンジング完了')
 
-    # 学習データと検証データに行を分離（先頭7000を検証データとして使用）
-    valid_size = 7000 if len(xs) > 70000 else int(len(xs)*0.1)
-    valid_x = xs[:valid_size]
-    valid_y = ys[:valid_size]
-    train_x = xs[valid_size:]
-    train_y =  ys[valid_size:]
-
-    print(train_xs.info())
-
-    logger.info('データクレンジング完了')
-
-    return train_x, train_y, valid_x, valid_y
+    return xs, ys
 
 
 
