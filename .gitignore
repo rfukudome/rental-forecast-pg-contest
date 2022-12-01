@@ -1,5 +1,8 @@
-.model/
-.data/
-.input/
+__pycache__
 .venv/
-.output/
+model/
+data/
+input/
+venv/
+output/
+mods/__pycache__/

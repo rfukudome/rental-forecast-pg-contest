@@ -18,11 +18,12 @@ INPUT_FILE_NAME = 'rent'
 # input_df = csv_to_picle(INPUT_DIR,INPUT_FILE_NAME)
 PATH_INPUT_RENT = path.join('input',INPUT_FILE_NAME+'.pickle')
 input_df = pd.read_pickle(PATH_INPUT_RENT)
+# input_df = input_df.head(1000)
 # train 
 print('現在読み込まれているデータ件数は',len(input_df),'件です')
 xs, ys = data_cleansing(input_df)
 #説明変数データCSV出力
-xs.head(500).to_csv('./data/tarin_x.csv')
+xs.head(1000).to_csv('./data/tarin_x.csv')
 
 # 学習データと検証データに行を分離（先頭7000を検証データとして使用）
 valid_size = 7000 if len(xs) > 70000 else int(len(xs)*0.1)

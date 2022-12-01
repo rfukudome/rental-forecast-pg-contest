@@ -1,6 +1,6 @@
 import pandas as pd
 import os.path as path
-# import mods.csv_to_pickle as csv_to_pk
+import mods.csv_to_pickle as csv_to_pk
 from datetime import datetime as dt
 
 # PATH_LAND_PRICE_CSV = path.join('data','land_price_2022.csv')
