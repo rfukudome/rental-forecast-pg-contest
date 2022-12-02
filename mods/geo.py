@@ -5,14 +5,13 @@ import pandas as pd
 import os.path as path
 import mods.csv_to_pickle as csv_to_pk
 
-# PATH_GEO_CSV = path.join('data', 'geolonia.csv') # 住所+緯度経度データ
+PATH_GEO_CSV = path.join('data', 'geolonia.csv') # 住所+緯度経度データ
 PATH_GEO_PICKLE = path.join('input', 'geolonia.pickle')
 
 def get_geo_location(df):
     df_rent = df.copy()
-    # df_geo = pd.read_csv(PATH_GEO_CSV).query('8 <= 都道府県コード <= 14')
-    # pk_geo = csv_to_pk.csv_to_pickle('data', 'geolonia')
-    # pd.to_pickle(pk_geo, PATH_GEO_PICKLE)
+    df_geo = pd.read_csv(PATH_GEO_CSV).query('8 <= 都道府県コード <= 14')
+    pk_geo = csv_to_pk.csv_to_pickle('data', 'geolonia')
     df_geo = pd.read_pickle(PATH_GEO_PICKLE).query('8 <= 都道府県コード <= 14')
     # 小字単位の粒度なので大字単位にまとめる
     df_geo = df_geo.groupby(['都道府県名','市区町村名', '大字町丁目名', '大字町丁目名ローマ字']).mean(['緯度','経度']).reset_index()
