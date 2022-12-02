@@ -7,6 +7,8 @@ import numpy as np
 import os
 from sklearn.metrics import mean_squared_error, accuracy_score, r2_score
 from mods.data_clean import data_cleansing
+from mods.csv_to_pickle import csv_to_pickle
+
 
 
 # トレーニング開始
@@ -15,7 +17,7 @@ INPUT_DIR = 'data'
 INPUT_FILE_NAME = 'rent'
 # 学習データ読み込み（DataFrame形式）
 # csvからpickle変換
-# input_df = csv_to_picle(INPUT_DIR,INPUT_FILE_NAME)
+input_df = csv_to_pickle(INPUT_DIR,INPUT_FILE_NAME)
 PATH_INPUT_RENT = path.join('input',INPUT_FILE_NAME+'.pickle')
 input_df = pd.read_pickle(PATH_INPUT_RENT)
 # input_df = input_df.head(1000)
@@ -23,7 +25,7 @@ input_df = pd.read_pickle(PATH_INPUT_RENT)
 print('現在読み込まれているデータ件数は',len(input_df),'件です')
 xs, ys = data_cleansing(input_df)
 #説明変数データCSV出力
-xs.head(1000).to_csv('./data/tarin_x.csv')
+# xs.head(1000).to_csv('./data/tarin_x.csv')
 
 # 学習データと検証データに行を分離（先頭7000を検証データとして使用）
 valid_size = 7000 if len(xs) > 70000 else int(len(xs)*0.1)
@@ -70,7 +72,7 @@ predict = model.predict(valid_x)
 # 0.6以下モデルとして意味ない
 # 0.8以上モデルとして完成度が高い
 # 0.9以上過学習の可能性あり
-pre_y = predict[0]+predict[1]+predict[2]+predict[3]+predict[4]
+pre_y = predict[0]
 pre_y_int = list(map(lambda x: int(x),pre_y))
 print(dt.now(),': 評価指数 R2スコアの結果')
 print(r2_score(valid_y, pre_y_int))

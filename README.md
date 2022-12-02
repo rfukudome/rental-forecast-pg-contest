@@ -21,7 +21,8 @@
 　mods/　学習に必要なデータを整理してくれるモジュール群
 　　.avg_rent.py （都道府県の部屋数ごとの平均家賃データを追加するプログラム）
 　　.csv_to_pickle.py　（csvをpickleに変換するプログラム）
-　　.data_clean.py　（データクレンジングをするプログラム）
+　　.data_clean.py　（学習用データクレンジングをするプログラム）
+    .pre_data_clean.py　（予測用データクレンジングをするプログラム
 　　.geo.py　（都道府県の緯度経度データを追加するプログラム）
 　　.land_price.py　（都道府県の地価データを追加するプログラム）
 　output/　学習グラフ・家賃予測した結果を保存するフォルダ
@@ -39,6 +40,6 @@
 
 
 ## 使用手順（予測）
-　1. dataフォルダに予測したいCSVデータを投入してください。※ファイル名は、test-input.csvに固定
+　1. dataフォルダに予測したいCSVデータを配置してください。※ファイル名は、test-input.csvに固定
 　2. predict.pyを実行。
 　3. output/pre-rent-price.csvに結果が出力されるため確認してください。

@@ -3,21 +3,20 @@ import os.path as path
 import mods.csv_to_pickle as csv_to_pk
 from datetime import datetime as dt
 
-# PATH_LAND_PRICE_CSV = path.join('data','land_price_2022.csv')
+PATH_LAND_PRICE_CSV = path.join('data','land_price_2022.csv')
 PATH_LAND_PRICE_PICKLE = path.join('input','land_price_2022.pickle')
 
 def get_land_price(df):
     df_rent = df.copy()
-    # df_land_price = pd.read_csv(PATH_LAND_PRICE_CSV)
-    # pk_land_price = csv_to_pk.csv_to_pickle('data','land_price_2022')
-    # pd.to_pickle(pk_land_price,PATH_LAND_PRICE_PICKLE)
-    df_land_price = pd.read_pickle(PATH_LAND_PRICE_PICKLE)
+    df_land_price = pd.read_csv(PATH_LAND_PRICE_CSV)
+    pk_land_price = csv_to_pk.csv_to_pickle('data','land_price_2022')
+    # df_land_price = pd.read_pickle(PATH_LAND_PRICE_PICKLE)
     df_land_price['地価'] = df_land_price['postedLandPrice']
     df_land_price['都道府県名'] = df_land_price['location'].str.extract('(...??[都道府県])', expand=False)
     df_land_price['市区町村名'] = df_land_price['location'].str.extract('...??[都道府県]((?:東村山市|武蔵村山市|佐波郡玉村町)|.+?郡.+?[町村]|.+?市.+?区|.+?[市区町村])', expand=False)
     df_land_price['市区町村名'] = df_land_price['市区町村名'].apply(lambda s:s.replace('　',''))
     df_land_price['大字町丁目名2'] = df_land_price['location'].str.extract('...??[都道府県](?:(?:東村山市|武蔵村山市|佐波郡玉村町)|.+?郡.+?[町村]|.+?市.+?区|.+?[市区町村])(.+)', expand=False)
-    df_land_price['丁目3'] = df_land_price['大字町丁目名2'].str.extract('([０-９]{1,3}丁目)').replace('丁目','', regex=True).fillna('０')
+    df_land_price['丁目3'] = df_land_price['大字町丁目名2'].str.extract('([０-９]{1,3}丁目)').replace('丁目','', regex=True)#.fillna('０')
     df_land_price['丁目3'] = df_land_price['丁目3'].str.extract('([０-９]{1,2})$') \
         .apply(lambda s: s.str.translate(str.maketrans('０１２３４５６７８９', '0123456789')))
 
@@ -26,10 +25,12 @@ def get_land_price(df):
     for name in ['市区町村名', '大字町3']: df_land_price[name] = df_land_price[name].replace("ヶ", "ケ", regex=True)\
         .fillna('') #naあるとquery落ちて調査時に面倒
     
-    df_land_price = drop_needless_colums(df_land_price)
-    df_rent = pd.merge(df_rent, df_land_price, left_on=['都道府県名', '市区町村名','大字町', '丁目'], right_on=['都道府県名', '市区町村名', '大字町3', '丁目3'], how='left')
     
-    return df_rent
+    df_marge_rent = pd.merge(df_rent, df_land_price, left_on=['都道府県名', '市区町村名','大字町', '丁目'], right_on=['都道府県名', '市区町村名', '大字町3', '丁目3'], how='left',copy=True)
+    df_land_price = drop_needless_colums(df_marge_rent)
+    df_land_price = df_land_price.drop_duplicates(subset=['緯度', '経度','所在地','名称','間取り','階','向き'])
+    print(len(df_land_price))
+    return df_land_price
 
 def drop_needless_colums(df_land_price):
     drop_columns = [
